@@ -1,11 +1,11 @@
-#Discord Bot
+# Discord Bot
 This is the Discord bot used in the channel <https://discord.gg/7Hqqt5G>
 
-##Features
+## Features
 * Posts a message into the chat when a new block is found
 * Supports several commands
 
-####Bot commands
+#### Bot commands
 ```
 !help - shows this message
 !last [#payouts] [account-id] - shows the last #payouts payouts of the pool to the given account. If account id is omitted, your last payouts are shown (register first with !reg)
