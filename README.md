@@ -3,7 +3,7 @@ This is the Discord bot used in the channel <https://discord.gg/7Hqqt5G>
 
 ## Features
 * Posts a message into the chat when a new block is found
-* Has a subsribtion service, where you will get private messages from the bot, if you win blocks or get payouts
+* Has a subscription-service, where you will get private messages from the bot, if you win blocks or get payouts
 
 ```
 Bot Commands:
