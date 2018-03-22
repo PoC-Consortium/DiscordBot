@@ -14,13 +14,16 @@ try:
     BOT_ICON_URL = config['Bot']['BotIconUrl']
     BLOCK_MODE = config['Bot']['BlockMode']
 
-    POCC_POOL_NAMES = config['Pool']['PoolNames'].split(',')
+    POOL_NAMES = config['Pool']['PoolNames'].split(',')
+    POOL_URL = config['Pool']['PoolUrl'].split(',')
     POOL_PICTURES_URL = config['Pool']['PoolPicturesUrl'].split(',')
     OTHER_POOL_PICTURE = config['Pool']['OtherPoolPicture']
     # Create Dict of URLs
-    keys = POCC_POOL_NAMES
+    keys = POOL_NAMES
     values = POOL_PICTURES_URL
     POOL_PICTURES_URL = {k:v for k, v in zip(keys, values)}
+    values = POOL_URL
+    POOL_URL = {k[11:]:v for k, v in zip(keys, values)}
 except Exception as e:
     print("Config File invalid!")
     print(e)

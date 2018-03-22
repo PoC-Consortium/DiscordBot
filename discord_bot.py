@@ -1,3 +1,4 @@
+import sys
 import discord
 import utils
 import requests
@@ -12,7 +13,7 @@ import config_loader as config
 from discord.ext import commands
 from utils import *
 import perm_check
-
+import pool_communication as pcom
 
 # Initialize Bot
 bot = commands.Bot(command_prefix='!', description=msg.poc_bot_description)
@@ -72,7 +73,7 @@ async def block(ctx):
     """Shows current Block"""
     channel = ctx.message.channel
     miner_name, pool_name, block_height, block_id = get_block_winner()
-    embed = get_embed_winner(miner_name, pool_name, block_id, config.POCC_POOL_NAMES)
+    embed = get_embed_winner(miner_name, pool_name, block_id, config.POOL_NAMES)
     embed.title = "THE LAST GENERATED BLOCK"
     await bot.send_message(channel,  embed=embed)
 
@@ -90,7 +91,7 @@ async def payouts(ctx):
     if transactions:
         payouts_ = []
         for transaction in transactions:
-            if get_miner_name(transaction['sender']) in config.POCC_POOL_NAMES:
+            if get_miner_name(transaction['sender']) in config.POOL_NAMES:
                 payouts_.append({'pool':get_miner_name(transaction['sender']),
                                 'amount':transaction['amount'],
                                 'acc_id':transaction['acc_id'],
@@ -121,6 +122,49 @@ async def price(ctx):
         await bot.send_message(channel,  embed=embed)
     except Exception as e:
         response_message = "Retrieving price failed :tired_face: \n\nSorry...\n\nTry: !price Burst"
+        print(e)
+        await bot.say(response_message)
+
+
+@bot.command(pass_context=True)
+async def pool(ctx):
+    """Shows Statis about pool, example: !pool 0-100"""
+    try:
+        if len(ctx.message.content) == len("!pool"):
+            pool = config.POOL_URL['50-50']
+        else:
+            pool = ctx.message.content.lower()
+            pool = pool.split(' ')[1]
+            if pool in config.POOL_URL.keys():
+                pool = config.POOL_URL[pool]
+        channel = ctx.message.channel
+        embed = get_pool_stats_embed(pool)
+        await bot.send_message(channel,  embed=embed)
+    except Exception as e:
+        response_message = "Retrival of Pool Stats failed :tired_face: \n\nSorry...\n\nTry: !pool 50-50"
+        print(e)
+        await bot.say(response_message)
+
+
+@bot.command(pass_context=True)
+async def miner(ctx):
+    """Shows Statis about miner, example: !miner numeric_id"""
+    try:
+        if len(ctx.message.content) < len("!miner "):
+            response_message = "No miner specified, try: !miner numeric_id"
+            await bot.say(response_message)
+            return 0
+        else:
+            miner_id = ctx.message.content.lower()
+            miner_id = miner_id.split(' ')[1]
+        channel = ctx.message.channel
+        embed = get_miner_stats_embed(miner_id)
+        if type(embed) == type('str'):
+            await bot.say(embed)
+        else:
+            await bot.send_message(channel,  embed=embed)
+    except Exception as e:
+        response_message = "Retrival of Miner Stats failed :tired_face: \n\nSorry...\n\nTry: !miner numeric_id"
         print(e)
         await bot.say(response_message)
 
@@ -224,11 +268,11 @@ async def _show_winner(channels, miner_name, pool_name, block_id, sub_mode=False
     """displays current block winner"""
     for channel in channels:
         if config.BLOCK_MODE == 'All' and not(sub_mode):
-            embed = get_embed_winner(miner_name, pool_name, block_id, config.POCC_POOL_NAMES)
+            embed = get_embed_winner(miner_name, pool_name, block_id, config.POOL_NAMES)
             await bot.send_message(channel,  embed=embed)
             return
-        elif pool_name in config.POCC_POOL_NAMES:
-            embed = get_embed_winner(miner_name, pool_name, block_id, config.POCC_POOL_NAMES)
+        elif pool_name in config.POOL_NAMES:
+            embed = get_embed_winner(miner_name, pool_name, block_id, config.POOL_NAMES)
             await bot.send_message(channel,  embed=embed)
 
 
@@ -245,7 +289,7 @@ def _last_payout(burst_id):
     if transactions:
         payouts_ = []
         for transaction in transactions:
-            if get_miner_name(transaction['sender']) in config.POCC_POOL_NAMES:
+            if get_miner_name(transaction['sender']) in config.POOL_NAMES:
                 payouts_.append(
                     {'pool':get_miner_name(transaction['sender']),
                     'amount':transaction['amount'],
@@ -263,7 +307,7 @@ async def process_subscribers(miner_name, pool_name, block_id):
             if 'payouts' in data['sub_mod']:
                 payouts_ = _last_payout(data['burst_id'])
                 if payouts_:
-                    if not(data['last_payout'] == payouts_['timestamp']) and  payouts_['pool'] in config.POCC_POOL_NAMES:
+                    if not(data['last_payout'] == payouts_['timestamp']) and  payouts_['pool'] in config.POOL_NAMES:
                         msg_ = "Received payout of %s BURST from %s" % (payouts_['amount'], payouts_['pool'])
                         SUBSCRIBERS[account]['last_payout'] = payouts_['timestamp']
                         await bot.send_message(account,  msg_)

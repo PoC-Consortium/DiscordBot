@@ -6,7 +6,7 @@ import string
 import datetime
 import config_loader as config
 from web_wallet_communication import *
-
+from pool_communication import *
 
 def get_block_winner():
     """retrieves winning block information"""
@@ -102,6 +102,51 @@ def get_currency_stats(response, response_usd, coin="Burst"):
     except Exception as e:
         print(e)
         response_message = "Retrieving price failed :tired_face:"
+    return embed
+
+
+def get_pool_stats_embed(pool_url):
+    """gets stats about pool"""
+    try:
+        response = get_pool_stats(pool_url)
+        embed = discord.Embed(
+            title="{}".format(pool_url).upper(),
+            color=16777215)
+        embed.add_field(name="Miner Count", value="{}".format(response.minerCount))
+        embed.add_field(name="Effective Pool Capacity", value="{:.3f} TB".format(float(response.effectivePoolCapacity)))
+        embed.add_field(name="Network Difficulty", value="{:.3f}".format(float(response.netDiff)))
+    except KeyError:
+        print(e)
+        response_message = "Pool with name %s not found! Try !pool 50-50 ..." % pool_name
+        return response_message
+    except Exception as e:
+        print(e)
+        response_message = "The bot has brain damage, try again :poop:"
+        return response_message
+    return embed
+
+
+def get_miner_stats_embed(miner_id):
+    """gets stats about miner"""
+    try:
+        miner, pool_name = get_miner_stats(int(miner_id))
+        if miner == None:
+            print(miner)
+            print(miner_id)
+            print(type(miner_id))
+            return ("Miner with id %s not found!" % miner_id)
+        embed = discord.Embed(
+            title="{}".format(miner.name).upper(),
+            color=16777215)
+        embed.add_field(name="Pending Burst", value="{:.3f}".format(float(miner.pending)/100000000), inline=False)
+        embed.add_field(name="Effective Capacity", value="{:.3f} TB".format(float(miner.effectiveCapacity)), inline=False)
+        embed.add_field(name="Address", value="{}".format(miner.address), inline=False)
+        embed.add_field(name="Pool", value="{}".format(pool_name), inline=False)
+    except ValueError:
+        embed = "%s is not a valid miner_id!" % miner_id
+    except Exception as e:
+        print(e)
+        embed = "The bot has brain damage, try again :poop:"
     return embed
 
 

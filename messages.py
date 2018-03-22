@@ -11,6 +11,8 @@ help_response = """
     **!price [*coin*]** - displays coin market information, default: burst
     **!payouts [*account-id*]** - shows the last payouts from the PoCC-pools to defined account
     **!status** - shows the channels, where the bot is broadcasting
+    **!pool [*pool_name*]** - shows some interesting information about specified pool
+    **!miner [*miner_numeric_id*]** - shows some interesting information about specified miner
 
 **__Subscription__**:
     **!subscribe [*account-id*] [*payouts/blocks-by-us/blocks-by-me*]** - sends private messages to your account

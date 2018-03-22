@@ -2,6 +2,7 @@ import requests
 import json
 from time import sleep
 
+
 # define request strings
 requestType = 'https://wallet.burst.cryptoguru.org:8125/burst?requestType='
 getBlockHeight = requestType + 'getBlock&height='
