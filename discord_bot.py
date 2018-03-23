@@ -131,7 +131,12 @@ async def pool(ctx):
     """Shows Statis about pool, example: !pool 0-100"""
     try:
         if len(ctx.message.content) == len("!pool"):
-            pool = config.POOL_URL['50-50']
+            #pool = config.POOL_URL['50-50']
+            response_message = "***List of known Pools:***\n"
+            for (key, value) in zip(config.POOL_URL.keys(), config.POOL_URL.values()):
+                response_message += "***" + key + "*** : " + value + "\n"
+            await bot.say(response_message)
+            return 1
         else:
             pool = ctx.message.content.lower()
             pool = pool.split(' ')[1]
