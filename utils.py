@@ -92,7 +92,7 @@ def get_currency_stats(response, response_usd, coin="Burst"):
             color=16777215)
         embed.add_field(name="Bitcoin Value", value="{} BTC".format(response["price_btc"]))
         embed.add_field(name="Euro Value", value="{:.4f} €".format(float(response["price_eur"])))
-        embed.add_field(name="US-Dollar Value", value="{:.4f} $".format(float(response_usd["price_usd"])))
+        embed.add_field(name="US-Dollar Value", value="{} $".format(int(response_usd["price_usd"])))
         embed.add_field(name="Currency Rank", value="{:.4f}".format(float(response["rank"])))
         embed.add_field(name="Market Cap €", value="{:,} €".format(float(response["market_cap_eur"])))
         embed.add_field(name="Market Cap $", value="{:,} $".format(float(response_usd["market_cap_usd"])))

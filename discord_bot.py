@@ -63,9 +63,12 @@ async def on_error(error, r):
 @bot.command()
 async def status():
     """Displays Status of Bot"""
-    await bot.say('PoCC-Bot observing channels:')
+    msg = '***PoCC-Bot observing channels:***\n'
     for channel_name in config.CHANNEL_NAMES:
-        await bot.say("|- %s" % channel_name)
+        msg += "|- %s\n" % channel_name
+    msg += '***No of Subscriptions:*** %i\n' % len(SUBSCRIBERS)
+    msg += '***No of known Pools:*** %i\n' % len(config.POOL_NAMES)
+    await bot.say(msg)
 
 
 @bot.command(pass_context=True)
@@ -113,6 +116,8 @@ async def price(ctx):
             coin = ctx.message.content.lower()
             coin = coin.split(' ')[1]
             print(coin)
+            if coin == 'chia':
+                await bot.say("pseudo-coins, scam and fun-coins are not supported :grimacing:")
         response_eur = await fetch("https://api.coinmarketcap.com/v1/ticker/{}/?convert=EUR".format(coin))
         response_usd = await fetch("https://api.coinmarketcap.com/v1/ticker/{}/?convert=USD".format(coin))
         response_eur = json.loads(response_eur)[0]
@@ -177,34 +182,42 @@ async def miner(ctx):
 @bot.command(pass_context=True)
 async def subscribe(ctx):
     try:
-        account_id = ctx.message.content.split(' ')[1]
-        subscribe_ = ctx.message.content.split(' ')[2]
         discord_acc = ctx.message.author
+        if len(ctx.message.content.split(' ')) > 2:
+            subscribe_ = ctx.message.content.split(' ')[1]
+        else:
+            rsp = "***Your running subscriptions:***\n"
+            rsp += get_subscription_info(discord_acc)
+            await bot.say(rsp)
+            return
+        account_id = ctx.message.content.split(' ')[2]
         if not(subscribe_ in ['payouts', 'blocks-by-us', 'blocks-by-me']):
             raise
+        if not(account_id.split('-')[0] == 'BURST'):
+            account_id = 'BURST-' + account_id
+        acc_nick = get_miner_name(account_id)
     except Exception as e:
         print(e)
-        await bot.say("This was not a valid subscription!\nTry ***!subscribe BURST-XXXX-XXXX-XXXX-XXX payouts***")
+        await bot.say("This was not a valid subscription!\nTry ***!subscribe payouts BURST-XXXX-XXXX-XXXX-XXX***")
         return
-    acc_nick = get_miner_name(account_id)
     if not(discord_acc in SUBSCRIBERS):
-        print(discord_acc)
+        account = {'burst_id':account_id, 'last_payout':_last_payout, 'sub_mod': [subscribe_]}
         SUBSCRIBERS[discord_acc] = {'discord_acc': discord_acc,
-                                    'sub_mod': [subscribe_],
-                                    'burst_id': account_id,
-                                    'last_payout': None
+                                    'burst_acc':{account_id:account}
                                     }
+    elif not(account_id in SUBSCRIBERS[discord_acc]['burst_acc']):
+        account = {'burst_id':account_id, 'last_payout':_last_payout, 'sub_mod': [subscribe_]}
+        SUBSCRIBERS[discord_acc]['burst_acc'].update({account_id:account})
     else:
-        if not(subscribe_ in SUBSCRIBERS[discord_acc]['sub_mod']):
-            SUBSCRIBERS[discord_acc]['sub_mod'].append(subscribe_)
+        if not(subscribe_ in SUBSCRIBERS[discord_acc]['burst_acc'][account_id]['sub_mod']):
+            SUBSCRIBERS[discord_acc]['burst_acc'][account_id]['sub_mod'].append(subscribe_)
         else:
             await bot.say("You have this service already subscribed!")
             return
 
-    print(SUBSCRIBERS)
     with open('subscriber.p', 'wb') as p_file:
         pickle.dump((SUBSCRIBERS), p_file)
-    response = msg.subscribe % (subscribe_, acc_nick, subscribe_)
+    response = msg.subscribe % (subscribe_, acc_nick, subscribe_, account_id)
     await bot.send_message(discord_acc, response)
 
 
@@ -212,20 +225,52 @@ async def subscribe(ctx):
 async def unsubscribe(ctx):
     try:
         subscribe_ = ctx.message.content.split(' ')[1]
+        if len(ctx.message.content.split(' ')) > 2:
+            account_id = ctx.message.content.split(' ')[2]
+            if not(account_id.split('-')[0] == 'BURST'):
+                account_id = 'BURST-' + account_id
+        else:
+            account_id = None
         discord_acc = ctx.message.author
+
         if not(subscribe_ in ['payouts', 'blocks-by-us', 'blocks-by-me', 'all']):
             raise
+        if not(discord_acc in SUBSCRIBERS.keys()):
+            await bot.send_message(discord_acc, 'You have no subscriptions running!')
+            return
     except Exception as e:
         print(e)
-        await bot.say("This was not a valid unsubscription!\nTry ***!unsubscribe payout***")
+        await bot.say("This was not a valid unsubscription!\nTry ***!unsubscribe all*** or ***!unsubscribe payouts BURST-XXXX-XXXX-XXXX-XXXX***")
         return
     if subscribe_ == "all":
+        if account_id:
+            del SUBSCRIBERS[discord_acc][account_id]
+        else:
+            del SUBSCRIBERS[discord_acc]
+    else:
         print("Removing ", subscribe_)
-        SUBSCRIBERS[discord_acc]['sub_mod'] = []
-    if subscribe_ in SUBSCRIBERS[discord_acc]['sub_mod']:
-        print("Removing ", subscribe_)
-        SUBSCRIBERS[discord_acc]['sub_mod'].remove(subscribe_)
+        try:
+            burst_accounts = list(SUBSCRIBERS[discord_acc]['burst_acc'].keys())
+            if len(burst_accounts) == 1:
+                SUBSCRIBERS[discord_acc]['burst_acc'][burst_accounts[0]]['sub_mod'].remove(subscribe_)
+            else:
+                SUBSCRIBERS[discord_acc]['burst_acc'][account_id]['sub_mod'].remove(subscribe_)
+        except KeyError as e:
+            print(e)
+            rsp = 'Service ***%s*** not subscribed or %s not found!\n' % (subscribe_,account_id)
+            rsp += '***Known Accounts:***\n'
+            bot.send_message(discord_acc, rsp + get_subscription_info(discord_acc))
+            return 0
     await bot.send_message(discord_acc, 'Unsubscribed %s!' % subscribe_)
+
+
+def get_subscription_info(discord_acc):
+    rsp = ''
+    for account in SUBSCRIBERS[discord_acc]['burst_acc'].keys():
+        rsp += '+%s\n' % account
+        for sub_mod in SUBSCRIBERS[discord_acc]['burst_acc'][account]['sub_mod']:
+             rsp += '|-%s\n' % sub_mod
+    return rsp
 
 
 @bot.command()
@@ -300,29 +345,34 @@ def _last_payout(burst_id):
                     'amount':transaction['amount'],
                     'acc_id':transaction['acc_id'],
                     'timestamp':transaction['timestamp']})
-        return payouts_[0]
+        if payouts_:
+            return payouts_[0]
+        else:
+            return None
     else:
         return None
 
 
 async def process_subscribers(miner_name, pool_name, block_id):
     """Gets last payout of each subscriber and notify them if a payout was done"""
-    for account, data in SUBSCRIBERS.items():
-        try:
-            if 'payouts' in data['sub_mod']:
-                payouts_ = _last_payout(data['burst_id'])
-                if payouts_:
-                    if not(data['last_payout'] == payouts_['timestamp']) and  payouts_['pool'] in config.POOL_NAMES:
-                        msg_ = "Received payout of %s BURST from %s" % (payouts_['amount'], payouts_['pool'])
-                        SUBSCRIBERS[account]['last_payout'] = payouts_['timestamp']
-                        await bot.send_message(account,  msg_)
-            if 'blocks-by-us' in data['sub_mod']:
-                await _show_winner([account], miner_name, pool_name, block_id, sub_mode=True)
-            if 'blocks-by-me' in data['sub_mod']:
-                if miner_name == get_miner_name(data['burst_id']):
-                    await _show_winner([account], miner_name, pool_name, block_id, sub_mode=True)
-        except Exception as e:
-            print("ERROR in process_subscribers: ",e)
+    for discord_acc in SUBSCRIBERS.keys():
+        for burst_id in SUBSCRIBERS[discord_acc]['burst_acc'].keys():
+            try:
+                if 'payouts' in SUBSCRIBERS[discord_acc]['burst_acc'][burst_id]['sub_mod']:
+                    payouts_ = _last_payout(burst_id)
+                    if payouts_:
+                        if not(SUBSCRIBERS[discord_acc]['burst_acc'][burst_id]['last_payout'] == payouts_['timestamp']) and payouts_['pool'] in config.POOL_NAMES:
+                            msg_ = "***%s*** received payout of ***%s BURST*** from %s" % (get_miner_name(burst_id), payouts_['amount'], payouts_['pool'])
+                            SUBSCRIBERS[discord_acc]['burst_acc'][burst_id]['last_payout'] = payouts_['timestamp']
+                            print(msg_)
+                            await bot.send_message(discord_acc,  msg_)
+                if 'blocks-by-us' in SUBSCRIBERS[discord_acc]['burst_acc'][burst_id]['sub_mod']:
+                    await _show_winner([discord_acc], miner_name, pool_name, block_id, sub_mode=True)
+                if 'blocks-by-me' in SUBSCRIBERS[discord_acc]['burst_acc'][burst_id]['sub_mod']:
+                    if miner_name == get_miner_name(burst_id):
+                        await _show_winner([discord_acc], miner_name, pool_name, block_id, sub_mode=True)
+            except Exception as e:
+                print("ERROR in process_subscribers: ",e)
 
     with open('subscriber.p', 'wb') as p_file:
         pickle.dump((SUBSCRIBERS), p_file)
@@ -355,6 +405,15 @@ async def bot_loop():
             print(e)
 
 
+def bot_run():
+    try:
+        bot.loop.create_task(bot_loop())
+        bot.run(config.DISCORD_TOKEN)
+    except Exception as e:
+        print(e)
+        bot_run()
+
+
 if __name__ == '__main__':
     # Try to load pickled subscriber data
     try:
@@ -366,5 +425,4 @@ if __name__ == '__main__':
         with open('subscriber.p', 'wb') as f:
             pickle.dump(SUBSCRIBERS, f)
 
-    bot.loop.create_task(bot_loop())
-    bot.run(config.DISCORD_TOKEN)
+    bot_run()

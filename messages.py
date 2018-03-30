@@ -15,15 +15,18 @@ help_response = """
     **!miner [*miner_numeric_id*]** - shows some interesting information about specified miner
 
 **__Subscription__**:
-    **!subscribe [*account-id*] [*payouts/blocks-by-us/blocks-by-me*]** - sends private messages to your account
-    **!unsubscribe [*all/payouts/blocks-by-us/blocks-by-me*]** - stops subscription of service
+    **!subscribe [*payouts/blocks-by-us/blocks-by-me*] [*account-id*]** - sends private messages to your account
+    **!unsubscribe [*all/payouts/blocks-by-us/blocks-by-me*] [*account-id*]** - stops subscription of service
 
 **__Admin Commands__**:
     **!shutdown** - disables bot process
     **!toggle_block_mode** - toggles, if the bot should display only PoCC pools wins or all
+
+
+***If you need help with the bot, contact @Heos#1985***
 """
 
 subscribe ="""
 You subscribed ***%s*** for ***%s***!\n
-If you want to unsubscribe write ***!unsubscribe %s***
+If you want to unsubscribe write ***!unsubscribe %s %s***
 """

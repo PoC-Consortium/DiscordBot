@@ -4,7 +4,7 @@ from time import sleep
 
 
 # define request strings
-requestType = 'https://wallet.burst.cryptoguru.org:8125/burst?requestType='
+requestType = 'https://wallet1.burst-team.us:2083/burst?requestType='#'https://wallet.burst.cryptoguru.org:8125/burst?requestType='
 getBlockHeight = requestType + 'getBlock&height='
 getMiningInfo = requestType + 'getMiningInfo'
 getAccount = requestType + 'getAccount&account='
