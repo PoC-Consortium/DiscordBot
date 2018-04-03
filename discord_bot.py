@@ -137,19 +137,19 @@ async def pool(ctx):
     try:
         if len(ctx.message.content) == len("!pool"):
             #pool = config.POOL_URL['50-50']
-            response_message = "***List of known Pools:***\n"
-            for (key, value) in zip(config.POOL_URL.keys(), config.POOL_URL.values()):
-                response_message += "***" + key + "*** : " + value + "\n"
-            await bot.say(response_message)
+            for pool in config.POOL_URL.values():
+                channel = ctx.message.channel
+                embed = get_pool_stats_embed(pool)
+                await bot.send_message(channel,  embed=embed)
             return 1
         else:
             pool = ctx.message.content.lower()
             pool = pool.split(' ')[1]
             if pool in config.POOL_URL.keys():
                 pool = config.POOL_URL[pool]
-        channel = ctx.message.channel
-        embed = get_pool_stats_embed(pool)
-        await bot.send_message(channel,  embed=embed)
+            channel = ctx.message.channel
+            embed = get_pool_stats_embed(pool)
+            await bot.send_message(channel,  embed=embed)
     except Exception as e:
         response_message = "Retrival of Pool Stats failed :tired_face: \n\nSorry...\n\nTry: !pool 50-50"
         print(e)
@@ -406,12 +406,8 @@ async def bot_loop():
 
 
 def bot_run():
-    try:
-        bot.loop.create_task(bot_loop())
-        bot.run(config.DISCORD_TOKEN)
-    except Exception as e:
-        print(e)
-        bot_run()
+    #bot.loop.create_task(bot_loop())
+    bot.run(config.DISCORD_TOKEN)
 
 
 if __name__ == '__main__':
